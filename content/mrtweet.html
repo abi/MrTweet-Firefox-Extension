@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>Mr. Tweet -&gt; Your Personal Networking Assistant on Firefox!</title>
+  <script src="resource://mrtweet/content/js/ext/jquery.js"></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta http-equiv="Content-Language" content="en-us"/>
+  <meta name="description" content="Your Personal Networking Assistant for Twitter, helping you identify relevant followers, recommending you to other users, and regularly computing your twitter usage statistics"> 
+  <meta name="keywords" content="twitter, networking, personal, assistant, followers"> 
+  <link rel="icon" type="image/png" href="resource://mrtweet/content/images/icon.png" />
+  <link href="resource://mrtweet/content/css/mrtweet.css" media="screen" rel="stylesheet" type="text/css" />
+</head>
+<body>
+  
+  <div class="login">
+    <div class="dialog">
+      <h1>MrTweet</h1>
+      <h2>Thanks for using the MrTweet plugin!</h2>
+      
+      <h3 class="login-text">Log in with your Twitter account</h3>
+      
+      <div id="notification-box">
+        <span id="notifications" class="error"></span>
+      </div>
+      
+      <form>
+        <label for="username">Username</label>
+        <input type="text" id="username"/>
+        <label for="password">Password</label>
+        <input type="password" id="password" />
+        <br />
+        <input class="button" type="button" id="signin-button" value="Login" />
+        <a class="forgot" target="_blank" href="http://twitter.com/account/resend_password">Forgot password?</a>
+      </form>
+      
+      <p class="nonuser">
+        Not a MrTweet user?
+        <br />
+        <a href="http://mrtweet.com">Learn more</a> or <a href="http://twitter.com/mrtweet">sign up by following MrTweet</a>.
+      </p>
+      
+      <input id="follow-button" class="hidden button" type="button" value="Follow MrTweet"></input>
+      
+      <div id="usage" class="hidden">
+         <p>Check out your <a href="">profile page</a> to see stats about yourself. You'll be able to see MrTweet stats for others users as well. Very soon, you will be able to recommend them directly from their profile pages! =)</p>
+      </div>
+      
+      <div id="plugin-activate-info" class="hidden">
+        <h3 id="plugin-activate-user"></h3>
+        <input type="button" class="button" id="plugin-logout" value="Logout"/>
+      </div>
+      
+    </div>
+    
+    <div class="owl">
+      <img src="chrome://mrtweet/content/images/mrtweet.png" />
+    </div>
+    
+    <div class="clear"></div>
+  </div>
+  
+  <script type="text/javascript" charset="utf-8">
+  
+    const Cc = Components.classes;
+    const Ci = Components.interfaces;
+
+    const ACTIVATED_PREF = "extensions.mrtweet.activated";
+    const USERNAME_PREF = "extensions.mrtweet.username";
+    
+    function JSONify(obj){
+      var nativeJSON = Cc["@mozilla.org/dom/json;1"]
+                       .createInstance(Ci.nsIJSON);
+      return nativeJSON.decode(obj);
+    }
+    
+    var MrTweet = {
+      user : "", 
+      pass : "",
+      
+      activateUser : function activateUser(){
+        
+        var self = this;
+        $("form, input#follow-button, .login-text, .nonuser, #notifications").hide("fast");
+        
+        Application.prefs.setValue(ACTIVATED_PREF, true);
+        Application.prefs.setValue(USERNAME_PREF, self.user);
+        
+        //Let's save the username/password in the login manager
+        var host = "chrome://mrtweet";
+        var formSubmitURL = host + "/" + MrTweet.user;
+        var loginManager = Cc["@mozilla.org/login-manager;1"]
+                             .getService(Ci.nsILoginManager);
+        var httprealm = null;
+
+        try {
+            var nsLoginInfo = new Components.Constructor(
+                                "@mozilla.org/login-manager/loginInfo;1",
+                                 Ci.nsILoginInfo,
+                                 "init");
+
+            var loginInfo = new nsLoginInfo(host, formSubmitURL, null, 
+                                            self.user, self.pass, "username", "password");
+            loginManager.addLogin(loginInfo);
+        }
+        catch (e) {}
+
+        this.showActivatedPage();
+      },
+      
+      showActivatedPage : function showActivatedPage(){
+        $(".login-text, form, .nonuser").hide();
+        $("#plugin-activate-info").show()
+          .find("#plugin-activate-user")
+          .text("Logged in as @" +
+                Application.prefs.getValue(USERNAME_PREF, "someone"));
+        $("#usage").show().find("a").attr("href", "http://twitter.com/" + Application.prefs.getValue(USERNAME_PREF, "someone"));
+      },
+      
+      showDeactivatedPage : function showDeactivatedPage(){
+        $("#plugin-activate-info, #usage").hide();
+        $(".login-text, form, .nonuser").show();
+        $("#username").focus();
+      },
+      
+      followMrTweet : function followMrTweet(){
+        var self = this;
+        jQuery.ajax({
+          type: "POST",
+          url: "http://twitter.com/friendships/create/mrtweet.json",
+          success: function(data){
+            data = JSONify(data);
+            self.activateUser();
+          },
+          error : function(data){
+            data = JSONify(data);
+            $("#notifications").html("Something went wrong. Try following @mrtweet by <a href='http://twitter.com/mrtweet'>going to the Twitter page</a>");
+          },
+          username : self.user,
+          password : self.pass
+        });
+      },
+      
+      signIn : function signIn(){
+        
+        var self = this;
+        
+        $("#notifications").empty().text("Checking your Twitter...");
+        $("input#follow-button").hide();
+
+        self.user = $("#username").val();
+        self.pass = $("#password").val();
+
+        jQuery.ajax({
+          type: "GET",
+          username : self.user,
+          password : self.pass,
+          url: "http://twitter.com/account/verify_credentials.json",
+        
+          success: function(data){
+            data = JSONify(data);
+            $("#notifications").text("Logged in." + 
+              " Checking if you are a MrTweet user...");
+            
+            jQuery.ajax({
+              type: "GET",
+              url: "http://api.mrtweet.com/v1/is_user/" + MrTweet.user + 
+                    "/bc973dc90bb020f46123278c7fe16c9df206bd95.json",
+              success: function(data){
+                if(data.is_user){
+                  data = JSONify(data);
+                  self.activateUser();
+                }else{
+                  
+                  jQuery.ajax({
+                    type: "GET",
+                    url: "http://twitter.com/friendships/exists.json?user_a=" + 
+                        self.user + "&user_b=mrtweet",
+                    username : self.user,
+                    password : self.pass,
+                    success: function(data){
+                      if(data){
+                        self.activateUser();
+                      }else{
+                        $("#notifications").text("You need to follow @MrTweet to use this extension, \n click the sign up button to follow.");
+                        $(".login-text, form, .nonuser").hide();
+                        
+                        $("input#follow-button").show();
+                      }
+                    },
+                    error : function(data){ 
+                      data = JSONify(data);
+                      $("#notifications").text("An error occurred. Try again.");
+                    }
+                  }); 
+                  
+                }
+              },
+              error : function(data){
+                data = JSONify(data);
+                $("#notifications").text("An error occurred. Try again.");
+              }
+            });
+          
+        },
+        error : function(data){
+          data = JSONify(data);
+          $("#notifications").text("Oops, Twitter said no. Please try again?");
+        }
+      });
+        
+      },
+      signOut : function signOut(){
+        Application.prefs.setValue(ACTIVATED_PREF, false);
+        this.showDeactivatedPage();
+      }
+    };
+    
+    //Display the page differently depending on whether or not the user has activated
+    if(Application.prefs.getValue(ACTIVATED_PREF, false)){
+      MrTweet.showActivatedPage();
+    }else{
+      MrTweet.showDeactivatedPage();
+    }
+    
+    //Add the event handlers to UI elements
+    $("input#plugin-logout").click(function(){
+      MrTweet.signOut();
+    });
+    
+    $("input#follow-button").click(function(){
+      MrTweet.followMrTweet();
+    });
+    
+    $("input#password").keyup(function(e) {
+    	if(e.keyCode == 13) {
+    	  MrTweet.signIn();
+    	}
+    });
+
+    $("input#signin-button").click(function(){
+      MrTweet.signIn();
+    });
+    
+  </script>
+  
+</body>
+</html>

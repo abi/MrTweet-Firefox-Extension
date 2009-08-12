@@ -1,0 +1,3 @@
+resource mrtweet ./
+content mrtweet content/
+overlay chrome://browser/content/browser.xul chrome://mrtweet/content/browser.xul

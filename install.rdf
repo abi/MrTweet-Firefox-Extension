@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+  <Description about="urn:mozilla:install-manifest">
+    <em:id>mrtweet@mrtweet.com</em:id>
+    <em:version>1.0.1</em:version>
+
+    <!-- Target Application this extension can install into, 
+         with minimum and maximum supported versions. --> 
+    <em:targetApplication>
+      <Description>
+        <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+        <em:minVersion>3.0</em:minVersion>
+        <em:maxVersion>3.6a1pre</em:maxVersion>
+      </Description>
+    </em:targetApplication>
+   
+    <!-- Front End MetaData -->
+    <em:name>MrTweet</em:name>
+    <em:description>Helping you discover great people on Twitter.</em:description>
+    <em:creator>MrTweet</em:creator>
+    <em:iconURL>chrome://mrtweet/content/images/icon32.png</em:iconURL>
+    <em:homepageURL>http://mrtweet.com/</em:homepageURL>
+    <!-- Not required for addons on AMO
+      <em:updateURL>http://mrtweet.com/update.rdf</em:updateURL>
+    <em:updateKey>MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC61WQSCk5F9XyGYzl65P0v75X93aCQjcPJSOqie3ymMN3Y4Eu3atvH671K7lQbeOhnC12wje56brhtFGAgjgFYXkmrRFeOdoi/Kpvg+Nvt9icDR+e3tH/o/x7ai3q5PMFQ3FybKL0/ICBQqdqqNGgVUjuJhe5zKAXT0k3klw/MIwIDAQAB</em:updateKey> -->
+  </Description>
+</RDF>
